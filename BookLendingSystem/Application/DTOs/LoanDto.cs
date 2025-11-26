@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel.DataAnnotations;
 
 namespace BookLendingSystem.Application.DTOs
 {
@@ -18,12 +19,14 @@ namespace BookLendingSystem.Application.DTOs
 
     public class BorrowBookDto
     {
+        [Required(ErrorMessage = "Book ID is required")]
         public Guid BookId { get; set; }
         
     }
 
     public class ReturnBookDto
     {
+        [Required(ErrorMessage = "Loan ID is required")]
         public Guid LoanId { get; set; }
         
     }

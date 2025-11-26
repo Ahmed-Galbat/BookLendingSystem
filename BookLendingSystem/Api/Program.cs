@@ -1,16 +1,18 @@
+using BookLendingSystem.Api;
+using BookLendingSystem.Api.Jobs;
 using BookLendingSystem.Application;
+using BookLendingSystem.Application.Interfaces;
 using BookLendingSystem.Infrastructure;
-using BookLendingSystem.Infrastructure.Persistence;
 using BookLendingSystem.Infrastructure.Identity;
+using BookLendingSystem.Infrastructure.Persistence;
+using BookLendingSystem.Infrastructure.Persistence.Seeds;
+using Hangfire;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
-using System.Text;
 using Microsoft.OpenApi.Models;
-using BookLendingSystem.Api;
-using Hangfire;
-using BookLendingSystem.Application.Interfaces;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -30,6 +32,12 @@ builder.Services.AddHangfireServer();
 // Add Application and Infrastructure layers
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+
+// Register the background job class
+builder.Services.AddScoped<OverdueLoanJob>();
+
+// Register as singleton for DI
+builder.Services.AddSingleton<HangfireAuthorizationFilter>();
 
 // Configure JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
@@ -107,7 +115,7 @@ app.UseHttpsRedirection();
 // Use Hangfire Dashboard
 app.UseHangfireDashboard("/hangfire", new DashboardOptions
 {
-    Authorization = new[] { new HangfireAuthorizationFilter() }
+    Authorization = new[] { app.Services.GetRequiredService<HangfireAuthorizationFilter>() }
 });
 
 app.UseAuthentication();
@@ -122,15 +130,13 @@ using (var scope = app.Services.CreateScope())
     try
     {
         var context = services.GetRequiredService<ApplicationDbContext>();
-        var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
-        var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
 
         // Apply migrations
         context.Database.Migrate();
 
         // Seed roles and admin user
-        await IdentitySeed.SeedRolesAsync(roleManager);
-        await IdentitySeed.SeedAdminUserAsync(userManager);
+        var seeder = services.GetRequiredService<DatabaseSeeder>();
+        await seeder.SeedAsync();
     }
     catch (Exception ex)
     {
@@ -140,7 +146,7 @@ using (var scope = app.Services.CreateScope())
 }
 
 // Schedule Hangfire recurring job
-RecurringJob.AddOrUpdate<ILoanService>(
+RecurringJob.AddOrUpdate<OverdueLoanJob>(
     "OverdueLoanCheck",
     x => x.CheckOverdueLoansAsync(),
     Cron.Daily); // Runs daily

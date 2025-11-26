@@ -2,6 +2,7 @@ using BookLendingSystem.Application.Interfaces;
 using BookLendingSystem.Domain.Entities;
 using BookLendingSystem.Infrastructure.Identity;
 using BookLendingSystem.Infrastructure.Persistence;
+using BookLendingSystem.Infrastructure.Persistence.Seeds;
 using BookLendingSystem.Infrastructure.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -37,7 +38,9 @@ namespace BookLendingSystem.Infrastructure
             // Services
             services.AddScoped(typeof(IRepository<,>), typeof(Repository<,>));
             services.AddScoped<ICurrentUserService, CurrentUserService>();
+            services.AddScoped<ITokenService, TokenService>();
             services.AddSingleton<IDateTimeService, DateTimeService>();
+            services.AddScoped<DatabaseSeeder>();
 
             // HttpContextAccessor 
             services.AddHttpContextAccessor();

@@ -101,8 +101,9 @@ namespace BookLendingSystem.Tests
             await _mockBookRepository.Received(1).UpdateAsync(book);
         }
 
+
         [Fact]
-        public async Task CheckOverdueLoansAsync_ShouldAutoReturnOverdueLoans_AndIncrementBookCopies()
+        public async Task GetOverdueLoansAsync_ShouldReturnOnlyOverdueLoans()
         {
             // Arrange
             var overdueLoan = new Loan
@@ -111,8 +112,7 @@ namespace BookLendingSystem.Tests
                 BookId = _bookId,
                 UserId = _userId,
                 ReturnDate = null,
-                DueDate = _fixedNow.AddDays(-1),
-                Book = new Book { Id = _bookId, Title = "Overdue Book" }
+                DueDate = _fixedNow.AddDays(-1)
             };
             var onTimeLoan = new Loan
             {
@@ -120,13 +120,11 @@ namespace BookLendingSystem.Tests
                 BookId = Guid.NewGuid(),
                 UserId = _userId,
                 ReturnDate = null,
-                DueDate = _fixedNow.AddDays(1),
-                Book = new Book { Id = Guid.NewGuid(), Title = "On Time Book" }
+                DueDate = _fixedNow.AddDays(1)
             };
 
             var loans = new List<Loan> { overdueLoan, onTimeLoan };
 
-            // Simulate real predicate filtering by compiling the expression
             _mockLoanRepository
                 .FindAsync(Arg.Any<Expression<Func<Loan, bool>>>())
                 .Returns(ci =>
@@ -135,37 +133,12 @@ namespace BookLendingSystem.Tests
                     return loans.Where(predicate).ToList();
                 });
 
-            var bookEntity = new Book { Id = _bookId, Title = "Overdue Book", TotalCopies = 3, AvailableCopies = 0 };
-            _mockBookRepository.GetByIdAsync(_bookId).Returns(bookEntity);
-
             // Act
-            await _loanService.CheckOverdueLoansAsync();
+            var result = await _loanService.GetOverdueLoansAsync();
 
-            // Assert: overdue loan was auto-returned
-            Assert.NotNull(overdueLoan.ReturnDate);
-            Assert.Equal(_fixedNow, overdueLoan.ReturnDate);
-            Assert.Equal(1, bookEntity.AvailableCopies); // incremented
-
-            // On-time loan untouched
-            Assert.Null(onTimeLoan.ReturnDate);
-
-            // Repository calls: loan and book updated exactly once for overdue loan only
-            await _mockLoanRepository.Received(1).UpdateAsync(overdueLoan);
-            await _mockLoanRepository.DidNotReceive().UpdateAsync(onTimeLoan);
-            await _mockBookRepository.Received(1).UpdateAsync(bookEntity);
-        }
-
-        [Fact]
-        public async Task CheckOverdueLoansAsync_ShouldDoNothing_WhenNoOverdueLoans()
-        {
-            _mockLoanRepository
-                .FindAsync(Arg.Any<Expression<Func<Loan, bool>>>())
-                .Returns(new List<Loan>()); // no overdue loans
-
-            await _loanService.CheckOverdueLoansAsync();
-
-            await _mockLoanRepository.DidNotReceive().UpdateAsync(Arg.Any<Loan>());
-            await _mockBookRepository.DidNotReceive().UpdateAsync(Arg.Any<Book>());
+            // Assert
+            Assert.Single(result);
+            Assert.Contains(result, l => l.Id == overdueLoan.Id);
         }
     }
 }

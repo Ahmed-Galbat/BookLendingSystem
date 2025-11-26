@@ -45,14 +45,27 @@ namespace BookLendingSystem.Api.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<ActionResult<BookDto>> Create([FromBody] CreateBookDto dto)
         {
-            var book = await _bookService.AddBookAsync(dto);
-            return CreatedAtAction(nameof(GetById), new { id = book.Id }, book);
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            try
+            {
+                var book = await _bookService.AddBookAsync(dto);
+                return CreatedAtAction(nameof(GetById), new { id = book.Id }, book);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         [HttpPut("{id}")]
         [Authorize(Roles = "Admin")]
         public async Task<ActionResult<BookDto>> Update(Guid id, [FromBody] UpdateBookDto dto)
         {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
             try
             {
                 var book = await _bookService.UpdateBookAsync(id, dto);
@@ -61,6 +74,10 @@ namespace BookLendingSystem.Api.Controllers
             catch (KeyNotFoundException ex)
             {
                 return NotFound(ex.Message);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
             }
         }
 

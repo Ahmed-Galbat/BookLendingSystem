@@ -14,6 +14,6 @@ namespace BookLendingSystem.Application.Interfaces
 
         // Admin operations
         Task<IEnumerable<LoanDto>> GetAllLoansAsync();
-        Task CheckOverdueLoansAsync(); 
+        Task<IEnumerable<LoanDto>> GetOverdueLoansAsync();
     }
 }

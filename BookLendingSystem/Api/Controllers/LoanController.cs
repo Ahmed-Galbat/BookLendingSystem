@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace BookLendingSystem.Api.Controllers
 {
-    [Authorize(Roles = "Member")]
+    [Authorize]
     public class LoanController : BaseApiController
     {
         private readonly ILoanService _loanService;
@@ -19,6 +19,7 @@ namespace BookLendingSystem.Api.Controllers
         }
 
         [HttpPost("borrow")]
+        [Authorize(Roles = "Member")]
         public async Task<ActionResult<LoanDto>> Borrow([FromBody] BorrowBookDto dto)
         {
             if (string.IsNullOrEmpty(CurrentUserId))
@@ -42,6 +43,7 @@ namespace BookLendingSystem.Api.Controllers
         }
 
         [HttpPost("return/{loanId}")]
+        [Authorize(Roles = "Member")]
         public async Task<ActionResult<LoanDto>> Return(Guid loanId)
         {
             if (string.IsNullOrEmpty(CurrentUserId))
@@ -65,6 +67,7 @@ namespace BookLendingSystem.Api.Controllers
         }
 
         [HttpGet("my-loans")]
+        [Authorize(Roles = "Member")]
         public async Task<ActionResult<IEnumerable<LoanDto>>> GetUserLoans()
         {
             if (string.IsNullOrEmpty(CurrentUserId))

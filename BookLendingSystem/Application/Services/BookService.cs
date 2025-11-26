@@ -21,6 +21,13 @@ namespace BookLendingSystem.Application.Services
 
         public async Task<BookDto> AddBookAsync(CreateBookDto bookDto)
         {
+            // Check for duplicate ISBN
+            var existingBooks = await _bookRepository.FindAsync(b => b.ISBN == bookDto.ISBN);
+            if (existingBooks.Any())
+            {
+                throw new InvalidOperationException($"A book with ISBN '{bookDto.ISBN}' already exists.");
+            }
+
             var book = _mapper.Map<Book>(bookDto);
             book.Id = Guid.NewGuid();
             book.AvailableCopies = book.TotalCopies; 
@@ -35,6 +42,13 @@ namespace BookLendingSystem.Application.Services
             if (book == null)
             {
                 throw new KeyNotFoundException($"Book with ID {id} not found.");
+            }
+
+            // Check for duplicate ISBN (excluding current book)
+            var existingBooks = await _bookRepository.FindAsync(b => b.ISBN == bookDto.ISBN && b.Id != id);
+            if (existingBooks.Any())
+            {
+                throw new InvalidOperationException($"A book with ISBN '{bookDto.ISBN}' already exists.");
             }
 
             // Calculate the change in available copies

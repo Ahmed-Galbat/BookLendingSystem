@@ -112,28 +112,11 @@ namespace BookLendingSystem.Application.Services
             return _mapper.Map<IEnumerable<LoanDto>>(loans);
         }
 
-        public async Task CheckOverdueLoansAsync()
+        public async Task<IEnumerable<LoanDto>> GetOverdueLoansAsync()
         {
-            // Return any overdue loans
             var now = _dateTimeService.Now;
             var overdueLoans = await _loanRepository.FindAsync(l => l.ReturnDate == null && l.DueDate < now);
-
-            foreach (var loan in overdueLoans)
-            {
-                // Mark as returned
-                loan.ReturnDate = now;
-                await _loanRepository.UpdateAsync(loan);
-
-                // Restore book availability
-                var book = await _bookRepository.GetByIdAsync(loan.BookId);
-                if (book != null)
-                {
-                    book.AvailableCopies++;
-                    await _bookRepository.UpdateAsync(book);
-                }
-
-                Console.WriteLine($"AUTO-RETURN: Loan {loan.Id} (Book {loan.BookId}) overdue since {loan.DueDate}, auto-returned at {now}.");
-            }
+            return _mapper.Map<IEnumerable<LoanDto>>(overdueLoans);
         }
     }
 }
