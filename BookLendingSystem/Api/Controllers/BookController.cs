@@ -1,5 +1,11 @@
 using BookLendingSystem.Application.DTOs;
+using BookLendingSystem.Application.Features.Books.Commands.CreateBook;
+using BookLendingSystem.Application.Features.Books.Commands.DeleteBook;
+using BookLendingSystem.Application.Features.Books.Commands.UpdateBook;
+using BookLendingSystem.Application.Features.Books.Queries.GetAllBooks;
+using BookLendingSystem.Application.Features.Books.Queries.GetBookById;
 using BookLendingSystem.Application.Interfaces;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
@@ -11,18 +17,19 @@ namespace BookLendingSystem.Api.Controllers
     [Authorize]
     public class BookController : BaseApiController
     {
-        private readonly IBookService _bookService;
+        private readonly IMediator _mediator;
 
-        public BookController(IBookService bookService)
+        public BookController(IMediator mediator)
         {
-            _bookService = bookService;
+            _mediator = mediator;
         }
 
         [HttpGet]
         [AllowAnonymous]
         public async Task<ActionResult<IEnumerable<BookDto>>> GetAll()
         {
-            var books = await _bookService.GetAllBooksAsync();
+            var query = new GetAllBooksQuery();
+            var books = await _mediator.Send(query);
             return Ok(books);
         }
 
@@ -32,7 +39,8 @@ namespace BookLendingSystem.Api.Controllers
         {
             try
             {
-                var book = await _bookService.GetBookByIdAsync(id);
+                var query = new GetBookByIdQuery { Id = id };
+                var book = await _mediator.Send(query);
                 return Ok(book);
             }
             catch (KeyNotFoundException ex)
@@ -50,7 +58,15 @@ namespace BookLendingSystem.Api.Controllers
 
             try
             {
-                var book = await _bookService.AddBookAsync(dto);
+                var command = new CreateBookCommand
+                {
+                    Title = dto.Title,
+                    Author = dto.Author,
+                    ISBN = dto.ISBN,
+                    TotalCopies = dto.TotalCopies
+                };
+
+                var book = await _mediator.Send(command);
                 return CreatedAtAction(nameof(GetById), new { id = book.Id }, book);
             }
             catch (InvalidOperationException ex)
@@ -68,7 +84,16 @@ namespace BookLendingSystem.Api.Controllers
 
             try
             {
-                var book = await _bookService.UpdateBookAsync(id, dto);
+                var command = new UpdateBookCommand
+                {
+                    Id = id,
+                    Title = dto.Title,
+                    Author = dto.Author,
+                    ISBN = dto.ISBN,
+                    TotalCopies = dto.TotalCopies
+                };
+
+                var book = await _mediator.Send(command);
                 return Ok(book);
             }
             catch (KeyNotFoundException ex)
@@ -87,7 +112,8 @@ namespace BookLendingSystem.Api.Controllers
         {
             try
             {
-                await _bookService.DeleteBookAsync(id);
+                var command = new DeleteBookCommand { Id = id };
+                await _mediator.Send(command);
                 return NoContent();
             }
             catch (KeyNotFoundException ex)

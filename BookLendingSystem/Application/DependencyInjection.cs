@@ -11,13 +11,11 @@ namespace BookLendingSystem.Application
     {
         public static IServiceCollection AddApplication(this IServiceCollection services)
         {
-            // AutoMapper
+            // Register AutoMapper
             services.AddAutoMapper(Assembly.GetExecutingAssembly());
-            services.AddAutoMapper(typeof(BookLendingProfile).Assembly);
 
-            // Services
-            services.AddScoped<IBookService, BookService>();
-            services.AddScoped<ILoanService, LoanService>();
+            // Register MediatR
+            services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
 
             return services;
         }

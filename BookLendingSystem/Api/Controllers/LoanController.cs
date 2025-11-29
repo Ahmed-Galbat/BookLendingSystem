@@ -1,5 +1,10 @@
 using BookLendingSystem.Application.DTOs;
+using BookLendingSystem.Application.Features.Loans.Commands.BorrowBook;
+using BookLendingSystem.Application.Features.Loans.Commands.ReturnBook;
+using BookLendingSystem.Application.Features.Loans.Queries.GetAllLoans;
+using BookLendingSystem.Application.Features.Loans.Queries.GetUserLoans;
 using BookLendingSystem.Application.Interfaces;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
@@ -11,11 +16,11 @@ namespace BookLendingSystem.Api.Controllers
     [Authorize]
     public class LoanController : BaseApiController
     {
-        private readonly ILoanService _loanService;
+        private readonly IMediator _mediator;
 
-        public LoanController(ILoanService loanService)
+        public LoanController(IMediator mediator)
         {
-            _loanService = loanService;
+            _mediator = mediator;
         }
 
         [HttpPost("borrow")]
@@ -29,7 +34,13 @@ namespace BookLendingSystem.Api.Controllers
 
             try
             {
-                var loan = await _loanService.BorrowBookAsync(dto.BookId, CurrentUserId);
+                var command = new BorrowBookCommand
+                {
+                    BookId = dto.BookId,
+                    UserId = CurrentUserId
+                };
+
+                var loan = await _mediator.Send(command);
                 return CreatedAtAction(nameof(GetUserLoans), loan);
             }
             catch (KeyNotFoundException ex)
@@ -53,7 +64,13 @@ namespace BookLendingSystem.Api.Controllers
 
             try
             {
-                var loan = await _loanService.ReturnBookAsync(loanId, CurrentUserId);
+                var command = new ReturnBookCommand
+                {
+                    LoanId = loanId,
+                    UserId = CurrentUserId
+                };
+
+                var loan = await _mediator.Send(command);
                 return Ok(loan);
             }
             catch (KeyNotFoundException ex)
@@ -75,7 +92,8 @@ namespace BookLendingSystem.Api.Controllers
                 return Unauthorized("User is not authenticated.");
             }
 
-            var loans = await _loanService.GetUserLoansAsync(CurrentUserId);
+            var query = new GetUserLoansQuery { UserId = CurrentUserId };
+            var loans = await _mediator.Send(query);
             return Ok(loans);
         }
 
@@ -83,7 +101,8 @@ namespace BookLendingSystem.Api.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<ActionResult<IEnumerable<LoanDto>>> GetAllLoans()
         {
-            var loans = await _loanService.GetAllLoansAsync();
+            var query = new GetAllLoansQuery();
+            var loans = await _mediator.Send(query);
             return Ok(loans);
         }
     }
