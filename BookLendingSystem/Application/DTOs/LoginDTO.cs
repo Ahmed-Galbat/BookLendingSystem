@@ -9,10 +9,11 @@ namespace BookLendingSystem.Application.DTOs
 {
     public class LoginDTO
     {
-        [Required, EmailAddress]
+        [Required(ErrorMessage ="Email is required.")]
+        [EmailAddress(ErrorMessage ="Invalid email format.")]
         public string Email { get; set; }
 
-        [Required, MinLength(6)]
+        [Required(ErrorMessage = "Password is required.")]
         public string Password { get; set; }
     }
 }
