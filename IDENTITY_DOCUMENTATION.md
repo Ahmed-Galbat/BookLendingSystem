@@ -701,6 +701,18 @@ using (var scope = app.Services.CreateScope())
 | POST /api/auth/register | ✅ | ✅ | ✅ |
 | POST /api/auth/login | ✅ | ✅ | ✅ |
 
+**Important Note**: The current authorization implementation uses role isolation, meaning:
+- Admin users can ONLY perform Admin-specific operations (manage books, view all loans)
+- Member users can ONLY perform Member-specific operations (borrow/return books, view their loans)
+- Admin users CANNOT borrow books or perform Member-specific actions with the current configuration
+
+This is because the `[Authorize(Roles = "Member")]` attribute only allows users with the "Member" role.
+
+**Alternative Approach**: If you want Admin users to have all Member permissions plus additional admin privileges, you would need to:
+1. Change `[Authorize(Roles = "Member")]` to `[Authorize(Roles = "Member,Admin")]` on Member endpoints, OR
+2. Implement a custom authorization policy that checks for either role, OR
+3. Assign both Admin and Member roles to admin users during creation
+
 ---
 
 ## Files Reference
